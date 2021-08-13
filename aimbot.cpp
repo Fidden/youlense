@@ -365,9 +365,6 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool lc) {
 	if (g_config.m["aimbot_prefer_baim"][4] && !(record->m_pred_flags & FL_ONGROUND))
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 
-	if (g_config.m["aimbot_prefer_baim"][5] && lc)
-		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
-
 	bool only{ false };
 
 	// only, always.
@@ -390,12 +387,6 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool lc) {
 
 	// only, in air.
 	if (g_config.m["aimbot_only_baim"][3] && !(record->m_pred_flags & FL_ONGROUND)) {
-		only = true;
-		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
-	}
-
-	if (g_config.m["aimbot_only_baim"][4] && lc)
-	{
 		only = true;
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 	}
