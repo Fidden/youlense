@@ -73,7 +73,7 @@ public:
 	void UpdateAnimations(LagRecord* record);
 	void OnNetUpdate(Player* player);
 	void OnRoundStart(Player* player);
-	void SetupHitboxes(LagRecord* record, bool history);
+	void SetupHitboxes(LagRecord* record, bool lc);
 	bool SetupHitboxPoints(LagRecord* record, BoneArray* bones, int index, std::vector< vec3_t >& points);
 	bool GetBestAimPosition(vec3_t& aim, float& damage, LagRecord* record);
 

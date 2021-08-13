@@ -318,7 +318,7 @@ void AimPlayer::OnRoundStart(Player* player) {
 	// IMPORTANT: DO NOT CLEAR LAST HIT SHIT.
 }
 
-void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
+void AimPlayer::SetupHitboxes(LagRecord* record, bool lc) {
 	// reset hitboxes.
 	m_hitboxes.clear();
 
@@ -365,6 +365,9 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
 	if (g_config.m["aimbot_prefer_baim"][4] && !(record->m_pred_flags & FL_ONGROUND))
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 
+	if (g_config.m["aimbot_prefer_baim"][5] && lc)
+		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
+
 	bool only{ false };
 
 	// only, always.
@@ -387,6 +390,12 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
 
 	// only, in air.
 	if (g_config.m["aimbot_only_baim"][3] && !(record->m_pred_flags & FL_ONGROUND)) {
+		only = true;
+		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
+	}
+
+	if (g_config.m["aimbot_only_baim"][4] && lc)
+	{
 		only = true;
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 	}
@@ -578,7 +587,7 @@ void Aimbot::find() {
 		if (g_config.b["aimbot_lagfix"] && g_lagcomp.StartPrediction(t)) {
 			LagRecord* front = t->m_records.front().get();
 
-			t->SetupHitboxes(front, false);
+			t->SetupHitboxes(front, true);
 			if (t->m_hitboxes.empty())
 				continue;
 
@@ -617,7 +626,7 @@ void Aimbot::find() {
 			if (!last || last == ideal)
 				continue;
 
-			t->SetupHitboxes(last, true);
+			t->SetupHitboxes(last, false);
 			if (t->m_hitboxes.empty())
 				continue;
 

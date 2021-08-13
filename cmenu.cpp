@@ -210,8 +210,8 @@ void Menu::draw() {
 			if (g_config.m[XOR("aimbot_target_multipoint")][1] || g_config.m[XOR("aimbot_target_multipoint")][2])
 				ui::SliderInt("Body-point scale", &g_config.i[XOR("aimbot_body_scale")], 0, 100, "%d%%");
 
-			ui::MultiSelect("Prefer baim", &g_config.m[XOR("aimbot_prefer_baim")], { "Always", "Lethal", "Lethal x2", "Fake", "In air" });
-			ui::MultiSelect("Only baim", &g_config.m[XOR("aimbot_only_baim")], { "Always", "Lethal", "Fake", "In air" });
+			ui::MultiSelect("Prefer baim", &g_config.m[XOR("aimbot_prefer_baim")], { "Always", "Lethal", "Lethal x2", "Fake", "In air", "Lc"});
+			ui::MultiSelect("Only baim", &g_config.m[XOR("aimbot_only_baim")], { "Always", "Lethal", "Fake", "In air", "Lc"});
 
 			if (g_config.m[XOR("aimbot_only_baim")][1])
 				ui::SliderInt("##only_baim_health", &g_config.i[XOR("aimbot_only_baim_health")], 0, 100, "%dhp");
