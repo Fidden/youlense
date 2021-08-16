@@ -51,10 +51,10 @@ bool Hooks::IsHLTV() {
 	static const Address return_to_setup_velocity{ pattern::find(g_csgo.m_client_dll, XOR("84 C0 75 38 8B 0D ? ? ? ? 8B 01 8B 80")) };
 	static const Address return_to_accumulate_layers = pattern::find(g_csgo.m_client_dll, XOR("84 C0 75 0D F6 87"));
 
-	if (stack.ReturnAddress() == return_to_setup_velocity)
+	if (stack.ReturnAddress() == return_to_setup_velocity && g_bones.m_running && g_csgo.m_engine->IsInGame())
 		return true;
 
-	if (stack.ReturnAddress() == return_to_accumulate_layers)
+	if (stack.ReturnAddress() == return_to_accumulate_layers && g_csgo.m_engine->IsInGame())
 		return true;
 
 	return g_hooks.m_engine.GetOldMethod< IsHLTV_t >(IVEngineClient::ISHLTV)(this);

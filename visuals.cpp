@@ -109,6 +109,7 @@ void Visuals::ThirdpersonThink() {
 	vec3_t                         origin, forward;
 	static CTraceFilterSimple_game filter{ };
 	CGameTrace                     tr;
+	static auto					   percent = 0.f;
 
 	// for whatever reason overrideview also gets called from the main menu.
 	if (!g_csgo.m_engine->IsInGame() || !g_config.b["effects_thirdperson"])
@@ -142,7 +143,9 @@ void Visuals::ThirdpersonThink() {
 	else if (g_csgo.m_input->CAM_IsThirdPerson()) {
 		g_csgo.m_input->CAM_ToFirstPerson();
 		g_csgo.m_input->m_camera_offset.z = 0.f;
+		percent = m_thirdperson ? 1.f : 0.f;
 	}
+
 
 	// if after all of this we are still in thirdperson.
 	if (g_csgo.m_input->CAM_IsThirdPerson()) {
@@ -151,6 +154,8 @@ void Visuals::ThirdpersonThink() {
 
 		// get our viewangle's forward directional vector.
 		math::AngleVectors(offset, &forward);
+
+		percent = std::clamp(percent + g_csgo.m_globals->m_frametime * 8.f, 0.f, 1.f);
 
 		// cam_idealdist convar.
 		offset.z = g_config.i["effects_thirdperson_dst"];
@@ -796,18 +801,42 @@ void Visuals::OffScreen(Player* player, int alpha) {
 		verts[2] = render::RotateVertex(offscreen_pos, verts[2], offscreen_rotation);
 
 		// render!
-		int alpha1337 = sin(abs(fmod(-math::pi + (g_csgo.m_globals->m_curtime * (2 / .75)), (math::pi * 2)))) * 255;
-
-		if (alpha1337 < 0)
-			alpha1337 = alpha1337 * (-1);
 
 		color = g_config.imcolor_to_ccolor(g_config.c["esp_oof_col"]); // damage_data.m_color;
-		color.a() = (alpha == 255) ? alpha1337 : alpha / 2;
+		color.a() = alpha;
 
 		g_csgo.m_surface->DrawSetColor(color);
 		g_csgo.m_surface->DrawTexturedPolygon(3, verts);
 
 	}
+}
+
+void Visuals::UpdateCvars() {
+
+	g_csgo.m_cvar->UnlockCvar(g_csgo.viewmodel_offset_x);
+	g_csgo.m_cvar->UnlockCvar(g_csgo.viewmodel_offset_y);
+	g_csgo.m_cvar->UnlockCvar(g_csgo.viewmodel_offset_z);
+	g_csgo.m_cvar->UnlockCvar(g_csgo.aspect_ratio);
+
+	g_csgo.m_cvar->RemoveCallbacks(g_csgo.viewmodel_offset_x);
+	g_csgo.m_cvar->RemoveCallbacks(g_csgo.viewmodel_offset_y);
+	g_csgo.m_cvar->RemoveCallbacks(g_csgo.viewmodel_offset_z);
+	g_csgo.m_cvar->RemoveCallbacks(g_csgo.aspect_ratio);
+
+	if (g_config.b["other_viewmodel"])
+	{
+		g_csgo.viewmodel_offset_x->SetValue(g_config.i["other_viewmodel_x"]);
+		g_csgo.viewmodel_offset_y->SetValue(g_config.i["other_viewmodel_y"]);
+		g_csgo.viewmodel_offset_z->SetValue(g_config.i["other_viewmodel_z"]);
+	}
+	else {
+		g_csgo.viewmodel_offset_x->SetValue(g_csgo.viewmodel_offset_backup[0]);
+		g_csgo.viewmodel_offset_y->SetValue(g_csgo.viewmodel_offset_backup[1]);
+		g_csgo.viewmodel_offset_z->SetValue(g_csgo.viewmodel_offset_backup[2]);
+	}
+
+	float ratio = g_config.b[XOR("effects_aspectratio")] ? (g_config.i[XOR("effects_aspectratio_value")] * 0.1) / 2 : 1;
+	g_csgo.aspect_ratio->SetValue(ratio);
 }
 
 void Visuals::DrawPlayer(Player* player) {
@@ -836,6 +865,10 @@ void Visuals::DrawPlayer(Player* player) {
 	bool dormant = player->dormant();
 
 	if (!enemy)
+		return;
+
+	AimPlayer* data = &g_aimbot.m_players[player->index() - 1];
+	if (!data)
 		return;
 
 	if (g_config.b["other_radar"] && !dormant)
@@ -897,12 +930,9 @@ void Visuals::DrawPlayer(Player* player) {
 	if (!g_csgo.m_engine->GetPlayerInfo(index, &info))
 		return;
 
-	// run offscreen ESP.
-	OffScreen(player, alpha);
-
 	// attempt to get player box.
 	if (!GetPlayerBoxRect(player, box)) {
-		// OffScreen( player );
+		OffScreen(player, alpha);
 		return;
 	}
 
@@ -1059,11 +1089,12 @@ void Visuals::DrawPlayer(Player* player) {
 			else
 				flags.push_back({ XOR("BOMB"), { 255, 0, 0, low_alpha } });
 
-		if (g_config.m["esp_flags"][6] && g_resolver.iPlayers[player->index()] == true && enemy)
+		if (g_config.m["esp_flags"][6] && g_lagcomp.StartPrediction(data))
 			if (dormant)
-				flags.push_back({ XOR("FAKE"), { 130,130,130, low_alpha } });
+				flags.push_back({ XOR("LC"), { 130,130,130, low_alpha } });
 			else
-				flags.push_back({ XOR("FAKE"), { 255,255,255, low_alpha } });
+				flags.push_back({ XOR("LC"), { 255, 0, 0, low_alpha } });
+
 
 		// iterate flags.
 		for (size_t i{ }; i < flags.size(); ++i) {
@@ -1675,6 +1706,23 @@ void Visuals::DrawBeams() {
 	}
 }
 
+void Visuals::SetupConsoleFilter()
+{
+	static auto developer = g_csgo.m_cvar->FindVar(HASH("developer"));
+	developer->SetValue(1);
+	static auto con_filter_text = g_csgo.m_cvar->FindVar(HASH("con_filter_text"));
+	static auto con_filter_text_out = g_csgo.m_cvar->FindVar(HASH("con_filter_text_out"));
+	static auto con_filter_enable = g_csgo.m_cvar->FindVar(HASH("con_filter_enable"));
+	static auto contimes = g_csgo.m_cvar->FindVar(HASH("contimes"));
+
+
+	contimes->SetValue(15);
+	con_filter_text->SetValue("L ");
+	con_filter_text_out->SetValue(" ");
+	con_filter_enable->SetValue(2);
+	g_csgo.m_engine->ExecuteClientCmd("clear");
+}
+
 void Visuals::DebugAimbotPoints(Player* player) {
 	std::vector< vec3_t > p2{ };
 
@@ -1761,4 +1809,28 @@ void Visuals::WorldGrenadesTimer()
 			render::rect_filled(pos.x - (bar.x / 2) + 2, pos.y + 12, bar.x * smoke_factor, bar.y, col);
 		}
 	}
+}
+
+void Visuals::AutoPeekDraw(ImDrawList* list)
+{
+	if (!g_config.auto_check("misc_autopeek_key") || !g_config.b["misc_autopeek"] || g_menu.is_menu_opened())
+		return;
+
+	if (g_movement.m_peek_pos == vec3_t{ 0, 0, 0 })
+		return;
+
+	float Step = 3.14159265358979323846 * 2.0f / 60;
+	std::vector<ImVec2> points;
+	for (float lat = 0.f; lat <= 6.283185307179586f; lat += Step)
+	{
+		const auto& point3d = vec3_t(sin(lat), cos(lat), 0.f) * 25.f;
+		vec2_t point2d;
+		if (render::WorldToScreen(g_movement.m_peek_pos + point3d, point2d))
+			points.push_back(ImVec2(point2d.x, point2d.y));
+	}
+	auto flags_backup = list->Flags;
+	list->Flags |= ImDrawListFlags_AntiAliasedFill;
+	list->AddConvexPolyFilled(points.data(), points.size(), Color(20, 20, 20, 127).u32());
+	list->AddPolyline(points.data(), points.size(), Color(255, 255, 255, 127).u32(), true, 2.f);
+	list->Flags = flags_backup;
 }

@@ -29,6 +29,7 @@ public:
 	void StartMove(CUserCmd* cmd);
 	void EndMove(CUserCmd* cmd);
 	void BackupPlayers(bool restore);
+	void GamedataUpdate();
 	void DoMove();
 	void UnlockHiddenConvars();
 	void ClanTag();
@@ -62,9 +63,11 @@ public:
 	float            m_abs_yaw;
 	float            m_poses[24];
 	float			 m_left_thickness[64], m_right_thickness[64], m_at_target_angle[64];
+	bool			 m_update;
+	bool			 m_enable_pvs;
 
 	// active weapon variables.
-	Weapon* m_weapon;
+	Weapon*		m_weapon;
 	int         m_weapon_id;
 	WeaponInfo* m_weapon_info;
 	int         m_weapon_type;
@@ -81,8 +84,8 @@ public:
 	int	     m_max_lag;
 	int      m_lag;
 	int	     m_old_lag;
-	bool* m_packet;
-	bool* m_final_packet;
+	bool*	 m_packet;
+	bool*	 m_final_packet;
 	bool	 m_old_packet;
 	float	 m_lerp;
 	float    m_latency;
@@ -90,6 +93,7 @@ public:
 	int      m_server_tick;
 	int      m_arrival_tick;
 	int      m_width, m_height;
+	std::string m_weapon_name;
 
 	// usercommand variables.
 	CUserCmd* m_cmd;

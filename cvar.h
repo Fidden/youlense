@@ -125,6 +125,20 @@ public:
 		return nullptr;
 	}
 
+	void UnlockCvar(ConVar* var)
+	{
+		if (var)
+		{
+			var->m_flags &= ~FCVAR_DEVELOPMENTONLY;
+			var->m_flags &= ~FCVAR_HIDDEN;
+		}
+	}
+
+	void RemoveCallbacks(ConVar* var) {
+		if (var)
+			var->m_callbacks.RemoveAll();
+	}
+
 	template< typename... arguments >
 	void ConsoleColorPrintf( const Color& color, const char* format, arguments ... args ) {
 		return util::get_method< void( __cdecl* )( decltype( this ), const Color&, const char*, ... )>( this, CONSOLECOLORPRINTF )( this, color, format, args... );

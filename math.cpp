@@ -374,6 +374,99 @@ void math::ConcatTransforms(const matrix3x4_t& in1, const matrix3x4_t& in2, matr
     out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3];
 }
 
+matrix3x4_t math::AngleMatrix(const ang_t angles)
+{
+    matrix3x4_t result{};
+
+    m128 angle, sin, cos;
+    angle.f[0] = math::deg_to_rad(angles.x);
+    angle.f[1] = math::deg_to_rad(angles.y);
+    angle.f[2] = math::deg_to_rad(angles.z);
+    sincos_ps(angle.v, &sin.v, &cos.v);
+
+    result[0][0] = cos.f[0] * cos.f[1];
+    result[1][0] = cos.f[0] * sin.f[1];
+    result[2][0] = -sin.f[0];
+
+    const auto crcy = cos.f[2] * cos.f[1];
+    const auto crsy = cos.f[2] * sin.f[1];
+    const auto srcy = sin.f[2] * cos.f[1];
+    const auto srsy = sin.f[2] * sin.f[1];
+
+    result[0][1] = sin.f[0] * srcy - crsy;
+    result[1][1] = sin.f[0] * srsy + crcy;
+    result[2][1] = sin.f[2] * cos.f[0];
+
+    result[0][2] = sin.f[0] * crcy + srsy;
+    result[1][2] = sin.f[0] * crsy - srcy;
+    result[2][2] = cos.f[2] * cos.f[0];
+
+    return result;
+}
+
+
+vec3_t math::VectorRotate(const vec3_t& in1, const matrix3x4_t& in2)
+{
+    return vec3_t(in1.dot(in2[0]), in1.dot(in2[1]), in1.dot(in2[2]));
+}
+
+vec3_t math::VectorRotate(const vec3_t& in1, const ang_t& in2)
+{
+    const auto matrix = AngleMatrix(in2);
+    return VectorRotate(in1, matrix);
+}
+
+bool math::IntersectLineWithBB(vec3_t& start, vec3_t& end, vec3_t& min, vec3_t& max) {
+    float d1, d2, f;
+    auto start_solid = true;
+    auto t1 = -1.0f, t2 = 1.0f;
+
+    const float s[3] = { start.x, start.y, start.z };
+    const float e[3] = { end.x, end.y, end.z };
+    const float mi[3] = { min.x, min.y, min.z };
+    const float ma[3] = { max.x, max.y, max.z };
+
+    for (auto i = 0; i < 6; i++) {
+        if (i >= 3) {
+            const auto j = i - 3;
+
+            d1 = s[j] - ma[j];
+            d2 = d1 + e[j];
+        }
+        else {
+            d1 = -s[i] + mi[i];
+            d2 = d1 - e[i];
+        }
+
+        if (d1 > 0.0f && d2 > 0.0f)
+            return false;
+
+        if (d1 <= 0.0f && d2 <= 0.0f)
+            continue;
+
+        if (d1 > 0)
+            start_solid = false;
+
+        if (d1 > d2) {
+            f = d1;
+            if (f < 0.0f)
+                f = 0.0f;
+
+            f /= d1 - d2;
+            if (f > t1)
+                t1 = f;
+        }
+        else {
+            f = d1 / (d1 - d2);
+            if (f < t2)
+                t2 = f;
+        }
+    }
+
+    return start_solid || (t1 < t2&& t1 >= 0.0f);
+}
+
+
 bool math::IntersectRayWithBox(const vec3_t& start, const vec3_t& delta, const vec3_t& mins, const vec3_t& maxs, float tolerance, BoxTraceInfo_t* out_info) {
     int   i;
     float d1, d2, f;

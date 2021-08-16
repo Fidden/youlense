@@ -551,15 +551,17 @@ void Aimbot::think() {
 }
 
 void Aimbot::find() {
-	struct BestTarget_t { Player* player; vec3_t pos; float damage; LagRecord* record; };
+	struct BestTarget_t { Player* player; vec3_t pos; float damage; LagRecord* record; int hitbox; };
 
 	vec3_t       tmp_pos;
 	float        tmp_damage;
+	int			 tmp_hitbox;
 	BestTarget_t best;
 	best.player = nullptr;
 	best.damage = -1.f;
 	best.pos = vec3_t{ };
 	best.record = nullptr;
+	best.hitbox = -1;
 
 	if (m_targets.empty())
 		return;
@@ -575,7 +577,7 @@ void Aimbot::find() {
 		// this player broke lagcomp.
 		// his bones have been resetup by our lagcomp.
 		// therfore now only the front record is valid.
-		if (g_config.b["aimbot_lagfix"] && g_lagcomp.StartPrediction(t)) {
+		if ( g_config.b["aimbot_lagfix"] && g_lagcomp.StartPrediction(t)) {
 			LagRecord* front = t->m_records.front().get();
 
 			t->SetupHitboxes(front, true);
@@ -583,13 +585,14 @@ void Aimbot::find() {
 				continue;
 
 			// rip something went wrong..
-			if (t->GetBestAimPosition(tmp_pos, tmp_damage, front) && SelectTarget(front, tmp_pos, tmp_damage)) {
+			if (t->GetBestAimPosition(tmp_pos, tmp_damage, front, tmp_hitbox) && SelectTarget(front, tmp_pos, tmp_damage)) {
 
 				// if we made it so far, set shit.
 				best.player = t->m_player;
 				best.pos = tmp_pos;
 				best.damage = tmp_damage;
 				best.record = front;
+				best.hitbox = tmp_hitbox;
 			}
 		}
 
@@ -605,12 +608,13 @@ void Aimbot::find() {
 				continue;
 
 			// try to select best record as target.
-			if (t->GetBestAimPosition(tmp_pos, tmp_damage, ideal) && SelectTarget(ideal, tmp_pos, tmp_damage)) {
+			if (t->GetBestAimPosition(tmp_pos, tmp_damage, ideal, tmp_hitbox) && SelectTarget(ideal, tmp_pos, tmp_damage)) {
 				// if we made it so far, set shit.
 				best.player = t->m_player;
 				best.pos = tmp_pos;
 				best.damage = tmp_damage;
 				best.record = ideal;
+				best.hitbox = tmp_hitbox;
 			}
 
 			LagRecord* last = g_resolver.FindLastRecord(t);
@@ -622,18 +626,19 @@ void Aimbot::find() {
 				continue;
 
 			// rip something went wrong..
-			if (t->GetBestAimPosition(tmp_pos, tmp_damage, last) && SelectTarget(last, tmp_pos, tmp_damage)) {
+			if (t->GetBestAimPosition(tmp_pos, tmp_damage, last, tmp_hitbox) && SelectTarget(last, tmp_pos, tmp_damage)) {
 				// if we made it so far, set shit.
 				best.player = t->m_player;
 				best.pos = tmp_pos;
 				best.damage = tmp_damage;
 				best.record = last;
+				best.hitbox = tmp_hitbox;
 			}
 		}
 	}
 
 	// verify our target and set needed data.
-	if (best.player && best.record) {
+	if (best.player && best.record && best.hitbox) {
 		// calculate aim angle.
 		math::VectorAngles(best.pos - g_cl.m_shoot_pos, m_angle);
 
@@ -650,7 +655,7 @@ void Aimbot::find() {
 		m_stop = !(g_cl.m_buttons & IN_JUMP);
 
 		bool on = g_config.i["aimbot_hitchance"] > 0 && g_config.b["anti_untrasted"];
-		bool hit = on && CheckHitchance(m_target, m_angle);
+		bool hit = on && CheckHitchance(m_target, m_angle, m_record, best.hitbox);
 
 		if (m_stop && g_config.b["aimbot_autostop"])
 			g_movement.QuickStop();
@@ -684,7 +689,7 @@ void Aimbot::find() {
 	}
 }
 
-bool Aimbot::CanHit(vec3_t start, vec3_t end, LagRecord* record, int box, bool in_shot, BoneArray* bones)
+bool Aimbot::CanHit (vec3_t start, vec3_t end, LagRecord* record, int box, bool in_shot, BoneArray* bones)
 {
 	if (!record || !record->m_player)
 		return false;
@@ -764,50 +769,159 @@ bool Aimbot::CanHit(vec3_t start, vec3_t end, LagRecord* record, int box, bool i
 	return false;
 }
 
-bool Aimbot::CheckHitchance(Player* player, const ang_t& angle) {
-	constexpr float HITCHANCE_MAX = 100.f;
-	constexpr int   SEED_MAX = 255;
+bool Aimbot::CanHitHitbox(const vec3_t start, const vec3_t end, LagRecord* animation, studiohdr_t* hdr, int box)
+{
+	const auto studio_box = hdr->GetHitbox(box, 0);
 
-	vec3_t     start{ g_cl.m_shoot_pos }, end, fwd, right, up, dir, wep_spread;
-	float      inaccuracy, spread;
-	CGameTrace tr;
-	size_t     total_hits{ }, needed_hits{ (size_t)std::ceil((g_config.i["aimbot_hitchance"] * SEED_MAX) / HITCHANCE_MAX)};
+	if (!studio_box)
+		return false;
 
-	// get needed directional vectors.
-	math::AngleVectors(angle, &fwd, &right, &up);
+	vec3_t min, max;
 
-	// store off inaccuracy / spread ( these functions are quite intensive and we only need them once ).
-	inaccuracy = g_cl.m_weapon->GetInaccuracy();
-	spread = g_cl.m_weapon->GetSpread();
+	const auto is_capsule = studio_box->m_radius != -1.f;
 
-	// iterate all possible seeds.
-	for (int i{ }; i <= SEED_MAX; ++i) {
-		// get spread.
-		wep_spread = g_cl.m_weapon->CalculateSpread(i, inaccuracy, spread);
+	if (is_capsule)
+	{
+		math::VectorTransform(studio_box->m_mins, animation->m_bones[studio_box->m_bone], min);
+		math::VectorTransform(studio_box->m_maxs, animation->m_bones[studio_box->m_bone], max);
+		const auto dist = math::SegmentToSegment(start, end, min, max);
 
-		// get spread direction.
-		dir = (fwd + (right * wep_spread.x) + (up * wep_spread.y)).normalized();
-
-		// get end of trace.
-		end = start + (dir * g_cl.m_weapon_info->m_range);
-
-		// setup ray and trace.
-		g_csgo.m_engine_trace->ClipRayToEntity(Ray(start, end), MASK_SHOT, player, &tr);
-
-		// check if we hit a valid player / hitgroup on the player and increment total hits.
-		if (tr.m_entity == player && game::IsValidHitgroup(tr.m_hitgroup))
-			++total_hits;
-
-		// we made it.
-		if (total_hits >= needed_hits)
+		if (dist < studio_box->m_radius)
 			return true;
+	}
 
-		// we cant make it anymore.
-		if ((SEED_MAX - i + total_hits) < needed_hits)
-			return false;
+	if (!is_capsule)
+	{
+		math::VectorTransform(math::VectorRotate(studio_box->m_mins, studio_box->m_angle), animation->m_bones[studio_box->m_bone], min);
+		math::VectorTransform(math::VectorRotate(studio_box->m_maxs, studio_box->m_angle), animation->m_bones[studio_box->m_bone], max);
+
+		math::VectorITransform(start, animation->m_bones[studio_box->m_bone], min);
+		math::VectorITransform(end, animation->m_bones[studio_box->m_bone], max);
+
+		if (math::IntersectLineWithBB(min, max, studio_box->m_mins, studio_box->m_maxs))
+			return true;
 	}
 
 	return false;
+}
+
+bool Aimbot::CheckHitchance(Player* player, const ang_t& angle, LagRecord* record, int hitbox) {
+	if (g_config.i["aimbot_hitchance_type"] == 0)
+	{
+		constexpr float HITCHANCE_MAX = 100.f;
+		constexpr int   SEED_MAX = 255;
+
+		vec3_t     start{ g_cl.m_shoot_pos }, end, fwd, right, up, dir, wep_spread;
+		float      inaccuracy, spread;
+		CGameTrace tr;
+		size_t     total_hits{ }, needed_hits{ (size_t)std::ceil((g_config.i["aimbot_hitchance"] * SEED_MAX) / HITCHANCE_MAX) };
+
+		// get needed directional vectors.
+		math::AngleVectors(angle, &fwd, &right, &up);
+
+		// store off inaccuracy / spread ( these functions are quite intensive and we only need them once ).
+		inaccuracy = g_cl.m_weapon->GetInaccuracy();
+		spread = g_cl.m_weapon->GetSpread();
+
+		// iterate all possible seeds.
+		for (int i{ }; i <= SEED_MAX; ++i) {
+			// get spread.
+			wep_spread = g_cl.m_weapon->CalculateSpread(i, inaccuracy, spread);
+
+			// get spread direction.
+			dir = (fwd + (right * wep_spread.x) + (up * wep_spread.y)).normalized();
+
+			// get end of trace.
+			end = start + (dir * g_cl.m_weapon_info->m_range);
+
+			// setup ray and trace.
+			g_csgo.m_engine_trace->ClipRayToEntity(Ray(start, end), MASK_SHOT, player, &tr);
+
+			// check if we hit a valid player / hitgroup on the player and increment total hits.
+			if (tr.m_entity == player && game::IsValidHitgroup(tr.m_hitgroup))
+				++total_hits;
+
+			// we made it.
+			if (total_hits >= needed_hits)
+				return true;
+
+			// we cant make it anymore.
+			if ((SEED_MAX - i + total_hits) < needed_hits)
+				return false;
+		}
+
+		return false;
+	}
+	
+	if (g_config.i["aimbot_hitchance_type"] == 1)
+	{
+
+		constexpr float HITCHANCE_MAX = 100.f;
+		constexpr int   SEED_MAX = 255;
+
+		vec3_t     start{ g_cl.m_shoot_pos }, end, fwd, right, up, dir, wep_spread;
+		float      inaccuracy, spread;
+		size_t     total_hits{ }, needed_hits{ (size_t)std::ceil((g_config.i["aimbot_hitchance"] * SEED_MAX) / HITCHANCE_MAX) };
+
+		const auto studio_model = g_csgo.m_model_info->GetStudioModel(record->m_player->GetModel());
+		if (!studio_model)
+			return false;
+
+		// setup calculation parameters.
+		const auto round_acc = [](const float accuracy) { return roundf(accuracy * 1000.f) / 1000.f; };
+		const auto sniper = g_cl.m_weapon_id == AWP || g_cl.m_weapon_id == G3SG1
+			|| g_cl.m_weapon_id == SCAR20 || g_cl.m_weapon_id == SSG08;
+		const auto crouched = g_cl.m_flags & FL_DUCKING;
+
+		// get needed directional vectors.
+		math::AngleVectors(angle, &fwd, &right, &up);
+
+		// store off inaccuracy / spread ( these functions are quite intensive and we only need them once ).
+		inaccuracy = g_cl.m_weapon->GetInaccuracy();
+		spread = g_cl.m_weapon->GetSpread();
+
+
+		if (g_cl.m_weapon_id == REVOLVER)
+			return inaccuracy < (crouched ? .0020f : .0055f);
+
+		// no need for hitchance, if we can't increase it anyway.
+		if (crouched)
+		{
+			if (round_acc(inaccuracy) == round_acc(sniper ? g_cl.m_weapon_info->m_inaccuracy_crouch_alt : g_cl.m_weapon_info->m_inaccuracy_crouch))
+				return true;
+		}
+		else
+		{
+			if (round_acc(inaccuracy) == round_acc(sniper ? g_cl.m_weapon_info->m_inaccuracy_stand_alt : g_cl.m_weapon_info->m_inaccuracy_stand))
+				return true;
+		}
+
+		// iterate all possible seeds.
+		for (int i{ }; i <= SEED_MAX; ++i) {
+			// get spread.
+			wep_spread = g_cl.m_weapon->CalculateSpread(i, inaccuracy, spread);
+
+			// get spread direction.
+			dir = (fwd + (right * wep_spread.x) + (up * wep_spread.y)).normalized();
+
+			// get end of trace.
+			end = start + (dir * g_cl.m_weapon_info->m_range);
+
+			// check if we hit a valid player / hitgroup on the player and increment total hits.
+			if (CanHitHitbox(start, end, record, studio_model, hitbox))
+				++total_hits;
+
+			// we made it.
+			if (total_hits >= needed_hits)
+				return true;
+
+			// we cant make it anymore.
+			if ((SEED_MAX - i + total_hits) < needed_hits)
+				return false;
+		}
+
+		return false;
+	}
 }
 
 bool AimPlayer::SetupHitboxPoints(LagRecord* record, BoneArray* bones, int index, std::vector< vec3_t >& points) {
@@ -1004,7 +1118,7 @@ bool AimPlayer::SetupHitboxPoints(LagRecord* record, BoneArray* bones, int index
 	return true;
 }
 
-bool AimPlayer::GetBestAimPosition(vec3_t& aim, float& damage, LagRecord* record) {
+bool AimPlayer::GetBestAimPosition(vec3_t& aim, float& damage, LagRecord* record, int& hitbox) {
 	bool                  done, pen;
 	float                 dmg, pendmg;
 	HitscanData_t         scan;
@@ -1085,6 +1199,7 @@ bool AimPlayer::GetBestAimPosition(vec3_t& aim, float& damage, LagRecord* record
 						// save new best data.
 						scan.m_damage = out.m_damage;
 						scan.m_pos = point;
+						scan.hitbox = it.m_index;
 
 						// if the first point is lethal
 						// screw the other ones.
@@ -1098,6 +1213,7 @@ bool AimPlayer::GetBestAimPosition(vec3_t& aim, float& damage, LagRecord* record
 					// save new best data.
 					scan.m_damage = out.m_damage;
 					scan.m_pos = point;
+					scan.hitbox = it.m_index;
 					break;
 				}
 			}
@@ -1113,6 +1229,7 @@ bool AimPlayer::GetBestAimPosition(vec3_t& aim, float& damage, LagRecord* record
 	if (scan.m_damage > 0.f) {
 		aim = scan.m_pos;
 		damage = scan.m_damage;
+		hitbox = scan.hitbox;
 		return true;
 	}
 

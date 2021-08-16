@@ -55,7 +55,7 @@ struct MenuItem_t {
 
 class c_lua {
 public:
-	void initialize();
+	void init();
 
 	void refresh_scripts();
 

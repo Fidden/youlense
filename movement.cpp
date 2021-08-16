@@ -456,21 +456,43 @@ void Movement::FixMove(CUserCmd* cmd, const ang_t& wish_angles) {
 }
 
 void Movement::AutoPeek() {
-	//// set to invert if we press the button.
-	//if (g_input.GetKeyState(g_menu.main.movement.autopeek.get())) {
-	//	if (g_cl.m_old_shot)
-	//		m_invert = true;
+	if (!(g_cl.m_local->m_fFlags() & FL_ONGROUND))
+		return;
 
-	//	vec3_t move{ g_cl.m_cmd->m_forward_move, g_cl.m_cmd->m_side_move, 0.f };
+	if (g_config.auto_check("misc_autopeek_key") && g_config.b["misc_autopeek"]) {
+		if (m_peek_pos == vec3_t(0, 0, 0))
+			m_peek_pos = g_cl.m_local->m_vecOrigin();
 
-	//	if (m_invert) {
-	//		move *= -1.f;
-	//		g_cl.m_cmd->m_forward_move = move.x;
-	//		g_cl.m_cmd->m_side_move = move.y;
-	//	}
-	//}
+		if (g_cl.m_old_shot)
+			m_invert = true;
 
-	//else m_invert = false;
+		if (m_invert)
+		{
+			auto difference = g_cl.m_local->m_vecOrigin() - m_peek_pos;
+
+			const auto chocked_ticks = (g_cl.m_cmd->m_command_number % 2) != 1
+				? (14 - g_csgo.m_cl->m_choked_commands) : g_csgo.m_cl->m_choked_commands;
+
+			static auto cl_forwardspeed = g_csgo.m_cvar->FindVar(HASH("cl_forwardspeed"));
+
+			if (difference.length_2d() > 5.0f)
+			{
+				auto angle = math::CalcAngle(g_cl.m_local->m_vecOrigin(), m_peek_pos);
+				g_cl.m_cmd->m_view_angles.y = angle.y;
+
+				g_cl.m_cmd->m_forward_move = cl_forwardspeed->GetFloat() - (1.2f * chocked_ticks);
+				g_cl.m_cmd->m_side_move = 0.0f;
+			}
+			else {
+				m_peek_pos == vec3_t(0, 0, 0);
+				m_invert = false;
+			}
+		}
+	}
+	else {
+		m_peek_pos == vec3_t(0, 0, 0);
+		m_invert = false;
+	}
 }
 
 void Movement::QuickStop() {

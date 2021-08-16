@@ -242,6 +242,8 @@ void Menu::draw() {
 			}
 			ui::Checkbox("Predict fake-lag", &g_config.b[XOR("aimbot_lagfix")]);
 			ui::SliderInt("Hitchance", &g_config.i[XOR("aimbot_hitchance")], 0, 100, "%d%%");
+			if (g_config.i[XOR("aimbot_hitchance")] > 0)
+				ui::SingleSelect("##hitchance_type", &g_config.i["aimbot_hitchance_type"], { "Trace-ray", "Hitbox intersections" });
 			draw_lua_items("ragebot", "accuracy");
 		}
 		ui::EndChild();
@@ -270,7 +272,7 @@ void Menu::draw() {
 					ui::SliderInt("Rotate speed", &g_config.i[XOR("antiaim_rotate_speed")], 0, 100);
 				}
 				
-				ui::SingleSelect("Body yaw", &g_config.i[XOR("antiaim_body_yaw")], { XOR("Off"), XOR("Left"), XOR("Right"), XOR("Opposite"), XOR("Z") }); dmt(XOR("antiaim_body_yaw"));
+				ui::SingleSelect("Body yaw", &g_config.i[XOR("antiaim_body_yaw")], { XOR("Off"), XOR("Left"), XOR("Right"), XOR("Opposite"), XOR("Z"), XOR("Twist") }); dmt(XOR("antiaim_body_yaw"));
 
 				ui::SingleSelect("Fake yaw", &g_config.i[XOR("antiaim_fake_yaw")], { XOR("Off"), XOR("Default"), XOR("Relative"), XOR("Jitter"), XOR("Rotate"), XOR("Random"), XOR("Local view") }); dmt(XOR("antiaim_fake_yaw"));
 				if (g_config.i[XOR("antiaim_fake_yaw")] == 2)
@@ -440,7 +442,7 @@ void Menu::draw() {
 			ui::Checkbox("Bullet tracer", &g_config.b[XOR("effects_bullettrace")]); dmt(XOR("effects_bullettrace"));
 			ui::ColorEdit4("##effects_bullettrace_col", g_config.c[XOR("effects_bullettrace_col")]); dmt(XOR("effects_bullettrace_col"));
 			if (g_config.b[XOR("effects_bullettrace")])
-				ui::SliderInt("##effects_bullettrace_time", &g_config.i[XOR("effects_bullettrace_time")], 0, 10, "%ds"); dmt(XOR("effects_bullettrace_time"));
+				ui::SliderInt("##effects_bullettrace_time", &g_config.i[XOR("effects_bullettrace_time")], 1, 10, "%ds"); dmt(XOR("effects_bullettrace_time"));
 
 			ui::Checkbox("Kill feed", &g_config.b[XOR("effects_killfeed")]);
 
@@ -455,7 +457,11 @@ void Menu::draw() {
 
 			ui::Checkbox("Viewmodel fov", &g_config.b[XOR("effects_viewmodel_fov")]);
 			if (g_config.b[XOR("effects_viewmodel_fov")])
-				ui::SliderInt("##effects_viewmodel_fov_value", &g_config.i[XOR("effects_viewmodel_fov_value")], 0, 130, "%d °");
+				ui::SliderInt("##effects_viewmodel_fov_value", &g_config.i[XOR("effects_viewmodel_fov_value")], 0, 130, "%d°°");
+
+			ui::Checkbox("Aspect ratio", &g_config.b[XOR("effects_aspectratio")]);
+			if (g_config.b[XOR("effects_aspectratio")])
+				ui::SliderInt("##effects_aspectratio_value", &g_config.i[XOR("effects_aspectratio_value")], 0, 50, "%d%%");
 			
 
 			draw_lua_items("visuals", "other");
@@ -472,7 +478,7 @@ void Menu::draw() {
 			ui::Checkbox("Duck in air", &g_config.b["misc_duckinair"]);
 
 
-			ui::Checkbox("C-strafer", &g_config.b["misc_cstrafe"]);
+			/*ui::Checkbox("C-strafer", &g_config.b["misc_cstrafe"]);
 			ui::Keybind("##misc_cstrafe_key", &g_config.i["misc_cstrafe_key"], &g_config.i["misc_cstrafe_key_style"]);
 
 
@@ -486,7 +492,11 @@ void Menu::draw() {
 			{
 				ui::SliderInt("##misc_zstrafe_freq", &g_config.i["misc_zstrafe_freq"], 1, 100, "%dhz");
 				ui::SliderInt("##misc_zstrafe_dist", &g_config.i["misc_zstrafe_dist"], 1, 100, "%d%%");
-			}
+			}*/
+
+		/*	ui::Checkbox("Auto peek", &g_config.b[XOR("misc_autopeek")]);
+			if (g_config.b[XOR("misc_autopeek")])
+				ui::Keybind("##misc_autopeek_key", &g_config.i["misc_autopeek_key"], &g_config.i["misc_autopeek_key_style"]);*/
 
 			ui::Checkbox("Clan-tag", &g_config.b[XOR("misc_clantag")]);
 			ui::MultiSelect("Notifications", &g_config.m[XOR("misc_notifications")], { XOR("Hit"), XOR("Purchase"), XOR("Hurt"), XOR("Bomb") });
@@ -498,6 +508,11 @@ void Menu::draw() {
 
 			ui::Checkbox("Ragdoll Force", &g_config.b[XOR("misc_ragdol")]);
 			ui::Checkbox("Unlock inventory", &g_config.b[XOR("misc_unlockinv")]);
+
+			//todo: в отдельный таб
+			ui::SingleSelect("Main weapon", &g_config.i["buybot_mainweapon"], { "Off", "Scar-20", "Ssg-08", "Awp" });
+			ui::SingleSelect("Sec weapon", &g_config.i["buybot_secweapon"], { "Off", "Heavy pistol", "Duals" });
+			ui::MultiSelect("Equipment", &g_config.m["buybot_equipment"], { "He grenade","Molotov grenade","Smoke grenade", "Kevlar","Kevlar + Helmet", "Zeus","Kit" });
 
 			draw_lua_items("misc", "miscellaneous");
 		}
@@ -590,6 +605,16 @@ void Menu::draw() {
 					ui::SingleSelect("##glove_skin", &g_config.i["skins_glove_skin"], glove_skins);
 				}
 			}
+
+			//todo: в отдельный таб
+
+			ui::Checkbox("Override viewmodel", &g_config.b["other_viewmodel"]);
+			if (g_config.b["other_viewmodel"])
+			{
+				ui::SliderInt("Viewmodel x", &g_config.i["other_viewmodel_x"], -25, 25);
+				ui::SliderInt("Viewmodel y", &g_config.i["other_viewmodel_y"], -25, 25);
+				ui::SliderInt("Viewmodel z", &g_config.i["other_viewmodel_z"], -25, 25);
+			}
 			draw_lua_items("skins", "knife_and_gloves");
 		}
 		ui::EndChild();
@@ -597,8 +622,34 @@ void Menu::draw() {
 		ui::SetNextWindowPos(calculateChildWindowPositionDouble(1));
 		ui::BeginChild("Skins", child_size_d);
 		{
-			if (g_config.b["skins_enable"])
+			if (g_config.b["skins_enable"] && g_cl.m_weapon)
 			{
+				static char skin[128];
+				ui::InputText("Search", skin, 128);
+				ui::ListBoxHeader("Skin");
+				{
+					for (auto s : g_skins.m_skins) {
+
+						std::transform(s.name.begin(), s.name.end(), s.name.begin(), ::tolower);
+
+						if (skin != "" && s.name.find(skin) == std::string::npos)
+							continue;
+
+						s.name[0] = toupper(s.name[0]);
+						s.name += " (" + std::to_string(s.id) + ")";
+
+						if (ui::Selectable(s.name.c_str(), g_config.i["skins_" + std::to_string(g_cl.m_weapon_id) + "_weapon"] == s.id))
+						{
+							g_config.i["skins_" + std::to_string(g_cl.m_weapon_id) + "_weapon"] = s.id;
+							g_skins.m_update = true;
+						}
+					}
+				}
+				ui::ListBoxFooter();
+
+				ui::SliderInt("Seed", &g_config.i["skins_" + std::to_string(g_cl.m_weapon_id) + "_weapon_seed"], 0, 255);
+				ui::SliderInt("Stat-trak", &g_config.i["skins_" + std::to_string(g_cl.m_weapon_id) + "_weapon_stat"], 0, 1337);
+				ui::SliderInt("Wear", &g_config.i["skins_" + std::to_string(g_cl.m_weapon_id) + "_weapon_wear"], 0, 100, "%d%%");
 
 			}
 			draw_lua_items("skins", "weapon skins");

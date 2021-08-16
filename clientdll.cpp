@@ -59,6 +59,9 @@ void Hooks::LevelShutdown( ) {
 
 void Hooks::FrameStageNotify( Stage_t stage ) {
 
+	if (stage == FRAME_START)
+		g_cl.GamedataUpdate();
+
 	// save stage.
 	if( stage != FRAME_START )
 		g_cl.m_stage = stage;
@@ -71,6 +74,10 @@ void Hooks::FrameStageNotify( Stage_t stage ) {
 	g_aimbot.UpdatePingBind();
 
 	g_aimbot.UpdateBaimBind();
+
+	g_visuals.UpdateCvars();
+
+	g_skins.UpdateGloves();
 
 	if( stage == FRAME_RENDER_START ) {	
 		// apply local player animated angles.

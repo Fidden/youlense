@@ -207,6 +207,30 @@ void Client::BackupPlayers(bool restore) {
 	}
 }
 
+void Client::GamedataUpdate() {
+	static int m_frame;
+	if (m_frame == g_csgo.m_globals->m_frame)
+		return;
+
+	m_frame = g_csgo.m_globals->m_frame;
+
+	/*g_visuals.m_inferno_data.clear();
+
+	for (auto i = 1; i < g_csgo.m_entlist->GetHighestEntityIndex(); i++)
+	{
+		const auto ent = g_csgo.m_entlist->GetClientEntity(i);
+		if (!ent)
+			continue;
+
+		auto class_id = ent->GetClientClass()->m_ClassID;
+
+		if (class_id != 88)
+			return;
+
+		g_visuals.m_inferno_data.emplace_back(ent);
+	}*/
+}
+
 void Client::DoMove() {
 	penetration::PenetrationOutput_t tmp_pen_data{ };
 
@@ -245,6 +269,7 @@ void Client::DoMove() {
 		m_weapon_info = m_weapon->GetWpnData();
 		m_weapon_id = m_weapon->m_iItemDefinitionIndex();
 		m_weapon_type = m_weapon_info->m_weapon_type;
+		m_weapon_name = m_weapon->GetLocalizedName();
 
 		// ensure weapon spread values / etc are up to date.
 		if (m_weapon_type != WEAPONTYPE_GRENADE)

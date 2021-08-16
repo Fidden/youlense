@@ -27,10 +27,7 @@ float penetration::scale( Player* player, float damage, float armor_ratio, int h
 	// scale damage based on hitgroup.
 	switch( hitgroup ) {
 	case HITGROUP_HEAD:
-		if( has_heavy_armor )
-			damage = ( damage * 4.f ) * 0.5f;
-		else
-			damage *= 4.f;
+		damage = has_heavy_armor ? 2.f : 4.f;
 		break;
 
 	case HITGROUP_STOMACH:
@@ -95,9 +92,9 @@ bool penetration::TraceToExit( const vec3_t &start, const vec3_t& dir, vec3_t& o
 		out = start + ( dir * dist );
 
 		if( !first_contents )
-			first_contents = g_csgo.m_engine_trace->GetPointContents( out, MASK_SHOT, nullptr );
+			first_contents = g_csgo.m_engine_trace->GetPointContents( out, MASK_SHOT_HULL | CONTENTS_HITBOX, nullptr );
 
-		contents = g_csgo.m_engine_trace->GetPointContents( out, MASK_SHOT, nullptr );
+		contents = g_csgo.m_engine_trace->GetPointContents( out, MASK_SHOT_HULL | CONTENTS_HITBOX, nullptr );
 
 		if( ( contents & MASK_SHOT_HULL ) && ( !( contents & CONTENTS_HITBOX ) || ( contents == first_contents ) ) )
 			continue;
@@ -106,7 +103,7 @@ bool penetration::TraceToExit( const vec3_t &start, const vec3_t& dir, vec3_t& o
 		new_end = out - ( dir * 4.f );
 
 		// do first trace aHR0cHM6Ly9zdGVhbWNvbW11bml0eS5jb20vaWQvc2ltcGxlcmVhbGlzdGlj.
-		g_csgo.m_engine_trace->TraceRay( Ray( out, new_end ), MASK_SHOT, nullptr, exit_trace );
+		g_csgo.m_engine_trace->TraceRay( Ray( out, new_end ), MASK_SHOT_HULL | CONTENTS_HITBOX, nullptr, exit_trace );
 
         // note - dex; this is some new stuff added sometime around late 2017 ( 10.31.2017 update? ).
         if( g_csgo.sv_clip_penetration_traces_to_players->GetInt( ) )
@@ -194,6 +191,8 @@ void penetration::ClipTraceToPlayer( const vec3_t& start, const vec3_t& end, uin
 	}
 }
 
+
+
 bool penetration::run( PenetrationInput_t* in, PenetrationOutput_t* out ) {
     static CTraceFilterSkipTwoEntities_game filter{};
 
@@ -251,15 +250,15 @@ bool penetration::run( PenetrationInput_t* in, PenetrationOutput_t* out ) {
 
 		// setup ray and trace.
 		// TODO; use UTIL_TraceLineIgnoreTwoEntities?
-		g_csgo.m_engine_trace->TraceRay( Ray( start, end ), MASK_SHOT, (ITraceFilter *)&filter, &trace );
+		g_csgo.m_engine_trace->TraceRay( Ray( start, end ), MASK_SHOT_HULL | CONTENTS_HITBOX, (ITraceFilter *)&filter, &trace );
 
 		// check for player hitboxes extending outside their collision bounds.
 		// if no target is passed we clip the trace to a specific player, otherwise we clip the trace to any player.
 		if( in->m_target )
-			ClipTraceToPlayer( start, end + ( dir * 40.f ), MASK_SHOT, &trace, in->m_target, -60.f );
+			ClipTraceToPlayer( start, end + ( dir * 40.f ), MASK_SHOT_HULL | CONTENTS_HITBOX, &trace, in->m_target, -60.f );
 
 		else
-			game::UTIL_ClipTraceToPlayers( start, end + ( dir * 40.f ), MASK_SHOT, (ITraceFilter *)&filter, &trace, -60.f );
+			game::UTIL_ClipTraceToPlayers( start, end + ( dir * 40.f ), MASK_SHOT_HULL | CONTENTS_HITBOX, (ITraceFilter *)&filter, &trace, -60.f );
 
 		// we didn't hit anything.
 		if( trace.m_fraction == 1.f )

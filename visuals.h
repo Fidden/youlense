@@ -112,6 +112,7 @@ public:
     void DrawProjectile(Weapon* ent);
     void DrawItem(Weapon* item);
     void OffScreen(Player* player, int alpha);
+    void UpdateCvars();
     void DrawPlayer(Player* player);
     bool GetPlayerBoxRect(Player* player, Rect& box);
     void DrawHistorySkeleton(Player* player, int opacity);
@@ -119,8 +120,10 @@ public:
     void RenderGlow();
     void DrawHitboxMatrix(LagRecord* record, Color col, float time);
     void DrawBeams();
+    void SetupConsoleFilter();
     void DebugAimbotPoints(Player* player);
     void WorldGrenadesTimer();
+    void AutoPeekDraw(ImDrawList* list);
 };
 
 extern Visuals g_visuals;

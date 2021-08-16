@@ -29,6 +29,7 @@ HRESULT WINAPI Hooks::Present(IDirect3DDevice9* pDevice, RECT* pRect1, const REC
 		g_menu.draw_begin();
 		{
 			g_menu.draw();
+			g_visuals.AutoPeekDraw(ui::GetDrawList());
 		}
 		g_menu.draw_end();
 

@@ -88,6 +88,7 @@ public:
 	IViewRenderBeams *m_beams;
 	void *m_radar;
 	void *m_hookable_cl;
+	uintptr_t m_player_vtable;
 
 public:
 	// convars.
@@ -167,6 +168,12 @@ public:
 
 	int *m_nPredictionRandomSeed;
 	Player *m_pPredictionPlayer;
+
+	std::vector<int> viewmodel_offset_backup;
+	ConVar* viewmodel_offset_x;
+	ConVar* viewmodel_offset_y;
+	ConVar* viewmodel_offset_z;
+	ConVar* aspect_ratio;
 
 public:
 	// initialize class.

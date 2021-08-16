@@ -211,6 +211,10 @@ public:
 		return ( x * v[ 0 ] + y * v[ 1 ] + z * v[ 2 ] );
 	}
 
+	__forceinline float dot(const float* v) const {
+		return (x * v[0] + y * v[1] + z * v[2]);
+	}
+
 	__forceinline vec3_t cross( const vec3_t &v ) const {
 		return {
 			( y * v.z ) - ( z * v.y ),

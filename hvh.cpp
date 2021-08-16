@@ -486,6 +486,10 @@ void HVH::DoRealAntiAim() {
 			case 4:
 				g_cl.m_cmd->m_view_angles.y += 90.f;
 				break;
+			case 5:
+				m_twist_side = !m_twist_side;
+				g_cl.m_cmd->m_view_angles.y += m_twist_side ? 110.f : -110.f;
+				break;
 			}
 		}
 

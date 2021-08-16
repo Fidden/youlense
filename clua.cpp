@@ -322,6 +322,11 @@ namespace ns_cvar {
 		}
 	}
 
+	void remove_callbacks(ConVar* var) {
+		if (var)
+			var->m_callbacks.RemoveAll();
+	}
+
 	float get_float(ConVar* var) {
 		return var ? var->GetFloat() : 0.f;
 	}
@@ -655,7 +660,7 @@ namespace ns_surface {
 
 c_lua g_lua;
 
-void c_lua::initialize() {
+void c_lua::init() {
 	this->lua = sol::state(sol::c_call<decltype(&lua_panic), &lua_panic>);
 	this->lua.open_libraries(sol::lib::base, sol::lib::string, sol::lib::table, sol::lib::math, sol::lib::debug);
 
@@ -1003,6 +1008,7 @@ void c_lua::initialize() {
 	cvar["get_string"] = ns_cvar::get_string;
 	cvar["set_string"] = ns_cvar::set_string;
 	cvar["unlock_cvar"] = ns_cvar::unlock_cvar;
+	cvar["remove_callbacks"] = ns_cvar::remove_callbacks;
 
 	auto overlay = this->lua.create_table();
 	overlay["add_box_overlay"] = ns_overlay::add_box_overlay;

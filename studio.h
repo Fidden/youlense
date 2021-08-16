@@ -56,6 +56,14 @@ struct studiohdr_t {
 	__forceinline mstudiohitboxset_t* GetHitboxSet( int index ) const {
 		return ( mstudiohitboxset_t* )( ( ( byte* )this ) + m_set_id ) + index;
 	}
+
+	__forceinline mstudiobbox_t* GetHitbox(int i, int set) const {
+		mstudiohitboxset_t const* s = GetHitboxSet(set);
+		if (!s)
+			return nullptr;
+
+		return s->GetHitbox(i);
+	}
 };
 
 class model_t {

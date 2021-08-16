@@ -121,6 +121,7 @@ public:
 	XoredNetvar< GET_XOR_KEYUI32, __COUNTER__ > m_flAbsYaw;
     XoredNetvar< GET_XOR_KEYUI32, __COUNTER__ > m_flConstraintRadius;
     XoredNetvar< GET_XOR_KEYUI32, __COUNTER__ > m_hMyWeapons;
+    XoredNetvar< GET_XOR_KEYUI32, __COUNTER__ > m_nExplodeEffectTickBegin;
 
     void init( ) {
         // initialize a xored netvar.
@@ -148,6 +149,7 @@ public:
         INIT_XOREDNETVAR( m_iHealth,                    HASH( "DT_CSPlayer" ),             HASH( "m_iHealth" ) );
         INIT_XOREDNETVAR( m_iAccount,                   HASH( "DT_CSPlayer" ),             HASH( "m_iAccount" ) );
         INIT_XOREDNETVAR( m_bHasDefuser,                HASH( "DT_CSPlayer" ),             HASH( "m_bHasDefuser" ) );
+        INIT_XOREDNETVAR( m_nExplodeEffectTickBegin,    HASH( "DT_BaseCSGrenadeProjectile" ),HASH( "m_nExplodeEffectTickBegin"));
         INIT_XOREDNETVAR( m_nHitboxSet,                 HASH( "DT_BaseAnimating" ),        HASH( "m_nHitboxSet" ) );
         INIT_XOREDNETVAR( m_angAbsRotation,             HASH( "C_BaseEntity" ),            HASH( "m_angAbsRotation" ) );
         INIT_XOREDNETVAR( m_angRotation,                HASH( "C_BaseEntity" ),            HASH( "m_angRotation" ) );

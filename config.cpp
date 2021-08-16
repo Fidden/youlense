@@ -231,6 +231,7 @@ void Config::load() {
 	// υσι
 
 	this->load_keys();
+	g_skins.m_update = true;
 }
 
 void Config::load_defaults() {
@@ -359,6 +360,21 @@ void Config::load_defaults() {
 	i["misc_pingspike_keystyle"] = 2;
 
 	b["anti_untrasted"] = true;
+	for (int i = 0; i < 65; i++)
+	{
+		g_config.i["skins_" + std::to_string(i) + "_weapon_wear"] = 100;
+	}
+
+	g_config.i["skins_500_weapon_wear"] = 100;
+	g_config.i["skins_505_weapon_wear"] = 100;
+	g_config.i["skins_506_weapon_wear"] = 100;
+	g_config.i["skins_507_weapon_wear"] = 100;
+	g_config.i["skins_508_weapon_wear"] = 100;
+	g_config.i["skins_509_weapon_wear"] = 100;
+	g_config.i["skins_512_weapon_wear"] = 100;
+	g_config.i["skins_514_weapon_wear"] = 100;
+	g_config.i["skins_515_weapon_wear"] = 100;
+	g_config.i["skins_516_weapon_wear"] = 100;
 }
 
 void Config::load_keys() {

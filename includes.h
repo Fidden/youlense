@@ -39,6 +39,7 @@ using ulong_t = unsigned long;
 #include <shlobj.h>
 #include <filesystem>
 #include <streambuf>
+#include <corecrt_math.h>
 
 // our custom wrapper.
 #include "unique_vector.h"

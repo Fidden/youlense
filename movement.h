@@ -13,6 +13,7 @@ public:
 	float  m_old_yaw;
 	float  m_circle_yaw;
 	bool   m_invert;
+	vec3_t m_peek_pos;
 
 public:
 	void JumpRelated();

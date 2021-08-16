@@ -37,6 +37,7 @@ public:
 	float  m_dir_custom;
 	size_t m_base_angle;
 	float  m_auto_time;
+	bool   m_twist_side;
 
 	bool   m_step_switch;
 	int    m_random_lag;

@@ -127,7 +127,8 @@ bool CSGO::init( ) {
 	m_glow               = GetGlowObjectManager( );
 	m_hookable_cl        = reinterpret_cast< void * >( *reinterpret_cast< uintptr_t ** >( reinterpret_cast< uintptr_t >( m_cl ) + 0x8 ) );
 	m_device			 = **pattern::find(m_shaderapidx9_dll, XOR("A1 ? ? ? ? 6A 00 53")).add(0x1).as<IDirect3DDevice9***>();
-	m_resource = *reinterpret_cast<PlayerResource***>(pattern::get_sig(XOR("client.dll"), XOR("A1 ? ? ? ? 57 85 C0 74 08")) + 0x1);
+	m_resource			 = *reinterpret_cast<PlayerResource***>(pattern::get_sig(XOR("client.dll"), XOR("A1 ? ? ? ? 57 85 C0 74 08")) + 0x1);
+	m_player_vtable		 = pattern::get_sig("client.dll", "55 8B EC 83 E4 F8 83 EC 18 56 57 8B F9 89 7C 24 0C") + 0x47;
 
 	// classes by offset from virtual.
 	m_globals     = util::get_method( m_client, CHLClient::INIT ).add( 0x1b ).get< CGlobalVarsBase* >( 2 );
@@ -176,6 +177,13 @@ bool CSGO::init( ) {
 	RandomInt   = PE::GetExport( m_vstdlib_dll, HASH( "RandomInt" ) ).as< RandomInt_t >( );
 	RandomFloat = PE::GetExport( m_vstdlib_dll, HASH( "RandomFloat" ) ).as< RandomFloat_t >( );
 
+	viewmodel_offset_x = g_csgo.m_cvar->FindVar(HASH("viewmodel_offset_x"));
+	viewmodel_offset_y = g_csgo.m_cvar->FindVar(HASH("viewmodel_offset_y"));
+	viewmodel_offset_z = g_csgo.m_cvar->FindVar(HASH("viewmodel_offset_z"));
+	aspect_ratio = g_csgo.m_cvar->FindVar(HASH("r_aspectratio"));
+	
+	viewmodel_offset_backup = { viewmodel_offset_x->GetInt(), viewmodel_offset_y->GetInt(), viewmodel_offset_z->GetInt() };
+
 	// prediction pointers.
 	m_nPredictionRandomSeed = util::get_method( m_prediction, CPrediction::RUNCOMMAND ).add( 0x30 ).get< int* >( );
 	m_pPredictionPlayer     = util::get_method( m_prediction, CPrediction::RUNCOMMAND ).add( 0x54 ).get< Player* >( );
@@ -203,7 +211,9 @@ bool CSGO::init( ) {
 	render::init( );
 	g_chams.init( );
 	g_hooks.init( );
-	g_lua.initialize();
+	g_lua.init( );
+	g_skins.init( );
+	g_visuals.SetupConsoleFilter();
 
     // if we injected and we're ingame, run map load func.
 	if( m_engine->IsInGame( ) ) {

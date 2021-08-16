@@ -66,7 +66,7 @@ public:
 	__forceinline uint8_t& b() { return m_b; }
 	__forceinline uint8_t& a() { return m_a; }
 	__forceinline uint32_t& rgba() { return m_rgba; }
-
+	__forceinline uint32_t u32() const { return *(uint32_t*) m_rgba; }
 	// operators.
 	__forceinline operator uint32_t() { return m_rgba; }
 };

@@ -13,6 +13,44 @@ void events::round_start(IGameEvent* evt) {
 	// fix fix?
 	g_cl.m_body_pred = g_csgo.m_globals->m_curtime;
 
+	switch (g_config.i["buybot_mainweapon"])
+	{
+	case 1: g_csgo.m_engine->ExecuteClientCmd("buy scar20; buy g3sg1;"); break;
+	case 2: g_csgo.m_engine->ExecuteClientCmd("buy ssg08;"); break;
+	case 3: g_csgo.m_engine->ExecuteClientCmd("buy awp;"); break;
+	default:
+		break;
+	}
+
+	switch (g_config.i["buybot_secweapon"])
+	{
+	case 1: g_csgo.m_engine->ExecuteClientCmd("buy deagle; buy revolver;"); break;
+	case 2: g_csgo.m_engine->ExecuteClientCmd("buy elite;"); break;
+	default:
+		break;
+	}
+
+	if (g_config.m["buybot_equipment"][0])
+		g_csgo.m_engine->ExecuteClientCmd("buy hegrenade;");
+
+	if (g_config.m["buybot_equipment"][1])
+		g_csgo.m_engine->ExecuteClientCmd("buy incgrenade;  buy molotov;");
+
+	if (g_config.m["buybot_equipment"][2])
+		g_csgo.m_engine->ExecuteClientCmd("buy smokegrenade;");
+
+	if (g_config.m["buybot_equipment"][3])
+		g_csgo.m_engine->ExecuteClientCmd("buy vest;");
+
+	if (g_config.m["buybot_equipment"][4])
+		g_csgo.m_engine->ExecuteClientCmd("buy vesthelm; buy vest;");
+
+	if (g_config.m["buybot_equipment"][5])
+		g_csgo.m_engine->ExecuteClientCmd("buy taser;");
+
+	if (g_config.m["buybot_equipment"][6])
+		g_csgo.m_engine->ExecuteClientCmd("buy defuser;");
+
 	// remove notices.
 	if (g_config.b["effects_killfeed"]) {
 		KillFeed_t* feed = (KillFeed_t*)g_csgo.m_hud->FindElement(HASH("SFHudDeathNoticeAndBotStatus"));

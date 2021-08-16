@@ -80,9 +80,6 @@ bool Hooks::CreateMove(float time, CUserCmd* cmd) {
 	// get bSendPacket off the stack.
 	g_cl.m_packet = stack.next().local(0x1c).as< bool* >();
 
-	for (auto hk : g_lua_hook.getHooks("on_create_move"))
-		hk.func(cmd, g_cl.m_packet);
-
 	// get bFinalTick off the stack.
 	g_cl.m_final_packet = stack.next().local(0x1b).as< bool* >();
 
