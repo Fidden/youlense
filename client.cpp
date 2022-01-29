@@ -65,7 +65,7 @@ void Client::ClanTag()
 		SetClanTagFn(tag.c_str(), XOR(""));
 	};
 
-	if (g_config.b["misc_clantag"]) {
+	//if (g_config.b["misc_clantag"]) {
 		static float iLastTime = 0.f;
 
 		float iCurrentTime = g_csgo.m_globals->m_curtime;
@@ -74,9 +74,9 @@ void Client::ClanTag()
 			SetClanTag(g_TagTable[int(g_csgo.m_globals->m_curtime * 2.4) % g_TagTable.size()]);
 		
 		iLastTime = iCurrentTime;
-	}
+	/*}
 	else
-		SetClanTag("");
+		SetClanTag("");*/
 }
 
 void Client::KillFeed() {
@@ -369,6 +369,8 @@ void Client::EndMove(CUserCmd* cmd) {
 
 void Client::OnTick(CUserCmd* cmd) {
 
+	g_cl.UpdateIncomingSequences();
+
 	// store some data and update prediction.
 	StartMove(cmd);
 
@@ -627,6 +629,6 @@ void Client::UpdateIncomingSequences() {
 	}
 
 	// do not save too many of these.
-	while (m_sequences.size() > 2048)
+	if (m_sequences.size() > 2048)
 		m_sequences.pop_back();
 }

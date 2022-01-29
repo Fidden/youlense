@@ -60,6 +60,7 @@ public:
 	IMaterialSystem *m_material_system;
 	CStudioRenderContext *m_studio_render;
 	IVModelInfo *m_model_info;
+	IMDLCache *m_model_cache;
 	IVDebugOverlay *m_debug_overlay;
 	IPhysicsSurfaceProps *m_phys_props;
 	IGameEventManager2 *m_game_events;

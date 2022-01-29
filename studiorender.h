@@ -223,6 +223,8 @@ public:
 	}
 };
 
+class IMatRenderContext;
+
 class IMaterialSystem {
 public:
 	enum indices : size_t {
@@ -241,6 +243,11 @@ public:
 
 	__forceinline IMaterial* FindMaterial( const char* name, char *type ) {
 		return  util::get_method< IMaterial*( __thiscall* )( void *, const char*, char*, bool, void* ) >( this, FINDMATERIAL )( this, name, type, 1, 0 );
+	}
+
+	__forceinline IMatRenderContext* GetRenderContext() {
+		using Fn = IMatRenderContext * (__thiscall*)(void*);
+		return util::get_method< Fn >(this, 115)(this);
 	}
 
 	__forceinline uint16_t FirstMaterial( ) {

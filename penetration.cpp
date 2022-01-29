@@ -27,7 +27,10 @@ float penetration::scale( Player* player, float damage, float armor_ratio, int h
 	// scale damage based on hitgroup.
 	switch( hitgroup ) {
 	case HITGROUP_HEAD:
-		damage = has_heavy_armor ? 2.f : 4.f;
+		if (has_heavy_armor)
+			damage = (damage * 4.f) * 0.5f;
+		else
+			damage *= 4.f;
 		break;
 
 	case HITGROUP_STOMACH:

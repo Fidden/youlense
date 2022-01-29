@@ -478,7 +478,7 @@ void Menu::draw() {
 			ui::Checkbox("Duck in air", &g_config.b["misc_duckinair"]);
 
 
-			/*ui::Checkbox("C-strafer", &g_config.b["misc_cstrafe"]);
+			ui::Checkbox("C-strafer", &g_config.b["misc_cstrafe"]);
 			ui::Keybind("##misc_cstrafe_key", &g_config.i["misc_cstrafe_key"], &g_config.i["misc_cstrafe_key_style"]);
 
 
@@ -492,7 +492,7 @@ void Menu::draw() {
 			{
 				ui::SliderInt("##misc_zstrafe_freq", &g_config.i["misc_zstrafe_freq"], 1, 100, "%dhz");
 				ui::SliderInt("##misc_zstrafe_dist", &g_config.i["misc_zstrafe_dist"], 1, 100, "%d%%");
-			}*/
+			}
 
 		/*	ui::Checkbox("Auto peek", &g_config.b[XOR("misc_autopeek")]);
 			if (g_config.b[XOR("misc_autopeek")])

@@ -1,5 +1,5 @@
 #pragma once
-
+typedef unsigned short ModelInstanceHandle_t;
 class Chams {
 public:
 	enum model_type_t : uint32_t {
@@ -8,6 +8,14 @@ public:
 		weapon,
 		arms,
 		view_weapon
+	};
+	struct CHitMatrixEntry {
+		int ent_index;
+		ModelRenderInfo_t info;
+		DrawModelState_t state;
+		matrix3x4_t pBoneToWorld[128] = {};
+		float time;
+		matrix3x4_t model_to_world;
 	};
 
 public:
@@ -23,14 +31,19 @@ public:
 	bool OverridePlayer(int index);
 	bool GenerateLerpedMatrix(int index, BoneArray* out);
 	void RenderHistoryChams(int index);
-	bool DrawModel(uintptr_t ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone);
-	void DrawChams(void* ecx, uintptr_t ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone);
+	bool DrawModel(IMatRenderContext* ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone);
+	void DrawChams(void* ecx, IMatRenderContext* ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone);
 	void SceneEnd();
 
 	void RenderPlayer(Player* player);
 	bool SortPlayers();
 
+	void AddHitmatrix(LagRecord* record);
+
+	void DrawHitMatrix(const std::function<void(IMatRenderContext* context, DrawModelState_t& state, ModelRenderInfo_t& info, matrix3x4_t* pBoneToWorld)> original);
+
 public:
+	std::deque<CHitMatrixEntry> m_Hitmatrix;
 	std::vector< Player* > m_players;
 	bool m_running;
 	IMaterial* debugambientcube;

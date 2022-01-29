@@ -171,6 +171,35 @@ public:
         // redirect.
 		netvar_entry.m_prop_ptr->m_ProxyFn = ( RecvVarProxy_t )proxy;
 	}
+
+	__forceinline unsigned int FindInDataMap(datamap_t* pMap, const char* name)
+	{
+		while (pMap)
+		{
+			for (int i = 0; i < pMap->m_size; i++)
+			{
+				if (pMap->m_desc[i].m_name == NULL)
+					continue;
+
+				if (strcmp(name, pMap->m_desc[i].m_name) == 0)
+					return pMap->m_desc[i].m_offset[TD_OFFSET_NORMAL];
+
+				if (pMap->m_desc[i].m_type == 10)
+				{
+					if (pMap->m_desc[i].m_td)
+					{
+						unsigned int offset;
+
+						if ((offset = FindInDataMap(pMap->m_desc[i].m_td, name)) != 0)
+							return offset;
+					}
+				}
+			}
+			pMap = pMap->m_base;
+		}
+
+		return 0;
+	}
 };
 
 extern Netvars g_netvars;

@@ -103,6 +103,7 @@ void Hooks::FrameStageNotify( Stage_t stage ) {
 	else if( stage == FRAME_NET_UPDATE_POSTDATAUPDATE_START ) {
 		g_cl.ClanTag();
 		g_skins.think( );
+
 	}
 
 	else if( stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END ) {

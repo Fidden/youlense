@@ -358,7 +358,7 @@ void Chams::RenderHistoryChams(int index) {
 	}
 }
 
-bool Chams::DrawModel(uintptr_t ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone) {
+bool Chams::DrawModel(IMatRenderContext* ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone) {
 	// store and validate model type.
 	model_type_t type = GetModelType(info);
 	if (type == model_type_t::invalid)
@@ -391,7 +391,7 @@ void Chams::SceneEnd() {
 	g_csgo.m_render_view->SetBlend(1.f);
 }
 
-void Chams::DrawChams(void* ecx, uintptr_t ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone) {
+void Chams::DrawChams(void* ecx, IMatRenderContext* ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone) {
 	Player* m_entity = g_csgo.m_entlist->GetClientEntity<Player*>(info.m_index);
 
 	// or crash >_< and prevents dead bodies from being colored
@@ -572,4 +572,112 @@ bool Chams::SortPlayers() {
 	std::sort(m_players.begin(), m_players.end(), distance_predicate);
 
 	return true;
+}
+
+void Chams::AddHitmatrix(LagRecord* record) {
+	auto& hit = m_Hitmatrix.emplace_back();
+	auto player = record->m_player;
+
+	int idx = player->index();
+
+	auto curBones = record->m_bones;
+	if (!curBones)
+		return;
+
+	std::memcpy(hit.pBoneToWorld, curBones, sizeof(matrix3x4_t));
+
+	hit.time = g_csgo.m_globals->m_realtime + 4.f;
+
+	int m_nSkin = g_netvars.FindInDataMap(player->GetPredDescMap(), XOR("m_nSkin"));
+	int m_nBody = g_netvars.FindInDataMap(player->GetPredDescMap(), XOR("m_nBody"));
+
+	hit.info.m_origin = player->GetAbsOrigin();
+	hit.info.m_angles = player->GetAbsAngles();
+
+	auto renderable = player->renderable();
+
+	if (!renderable)
+		return;
+
+	auto model = player->GetModel();
+
+	if (!model)
+		return;
+
+	auto hdr = g_csgo.m_model_info->GetStudioModel(model);
+	if (!hdr)
+		return;
+
+	hit.state.m_pStudioHdr = hdr;
+	hit.state.m_pStudioHWData = g_csgo.m_model_cache->GetHardwareData(model->studio);
+
+	hit.state.m_pRenderable = renderable;
+	hit.state.m_drawFlags = 0;
+
+	hit.info.m_renderable = renderable;
+	hit.info.m_model = model;
+	hit.info.m_lighting_offset = nullptr;
+	hit.info.m_lighting_origin = nullptr;
+	hit.info.m_hitboxset = player->m_nHitboxSet();
+	hit.info.m_skin = (int)(uintptr_t(player) + m_nSkin);
+	hit.info.m_body = (int)(uintptr_t(player) + m_nBody);
+	hit.info.m_index = player->index();
+	hit.info.m_instance = util::get_method<ModelInstanceHandle_t(__thiscall*)(void*) >(renderable, 30)(renderable);
+	hit.info.m_flags = 0x1;
+
+	hit.info.m_model_to_world = &hit.model_to_world;
+	hit.state.m_pModelToWorld = &hit.model_to_world;
+	math::AngleMatrix(hit.info.m_angles, hit.info.m_origin, hit.model_to_world);
+}
+
+void Chams::DrawHitMatrix(const std::function<void(IMatRenderContext* context, DrawModelState_t& state, ModelRenderInfo_t& info, matrix3x4_t* pBoneToWorld)> original) {
+
+	if (m_Hitmatrix.empty())
+		return;
+
+	auto context = g_csgo.m_material_system->GetRenderContext();
+	if (!context)
+		return;
+
+	bool should_draw = false;
+	auto it = m_Hitmatrix.begin();
+	while (it != m_Hitmatrix.end()) {
+
+		if (!it->state.m_pModelToWorld || !it->state.m_pRenderable || !it->state.m_pStudioHdr || !it->state.m_pStudioHWData ||
+			!it->info.m_renderable || !it->info.m_model_to_world || !it->info.m_model) {
+			++it;
+			should_draw = false;
+			continue;
+		}
+		auto ent = g_csgo.m_entlist->GetClientEntity< Player* >(it->info.m_index);
+		if (!ent) {
+			it = m_Hitmatrix.erase(it);
+			should_draw = false;
+			continue;
+		}
+
+		auto alpha = 1.0f;
+		auto delta = g_csgo.m_globals->m_realtime - it->time;
+		if (delta > 0.0f) {
+			alpha -= delta;
+			if (delta > 1.0f) {
+				it = m_Hitmatrix.erase(it);
+				should_draw = false;
+				continue;
+			}
+		}
+		should_draw = true;
+
+		// restore.
+		g_csgo.m_studio_render->ForcedMaterialOverride(nullptr);
+		g_csgo.m_render_view->SetColorModulation(colors::white);
+		g_csgo.m_render_view->SetBlend(1.f);
+
+
+		SetAlpha(1.f);
+		SetupMaterial(debugambientcube, Color(255, 255,255), true);
+		original(context, it->state, it->info, it->pBoneToWorld);
+
+		++it;
+	}
 }

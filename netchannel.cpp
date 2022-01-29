@@ -12,12 +12,15 @@ int Hooks::SendDatagram( void* data )
 	int backup2 = g_csgo.m_net->m_in_seq;
 
 	if ( g_aimbot.in_latency ) {
-		int ping = g_config.i["misc_fakeping"];
+		for (auto& seq : g_cl.m_sequences) {
+			if (g_csgo.m_globals->m_realtime - seq.m_time >= (float)g_config.i["misc_fakeping"] / 1000.f)
+			{
+				g_csgo.m_net->m_in_rel_state = seq.m_state;
+				g_csgo.m_net->m_in_seq = seq.m_seq;
+				break;
+			}
+		}
 
-		// the target latency.
-		float correct = std::max( 0.f, ( ping / 1000.f ) - g_cl.m_latency - g_cl.m_lerp );
-
-		g_csgo.m_net->m_in_seq += 2 * NET_FRAMES_MASK - static_cast< uint32_t >( NET_FRAMES_MASK * correct );
 	}
 
 	int ret = g_hooks.m_net_channel.GetOldMethod< SendDatagram_t >( INetChannel::SENDDATAGRAM )( this, data );
@@ -34,7 +37,7 @@ void Hooks::ProcessPacket( void* packet, bool header ) {
 
 	g_hooks.m_net_channel.GetOldMethod< ProcessPacket_t >( INetChannel::PROCESSPACKET )( this, packet, header );
 
-	g_cl.UpdateIncomingSequences( );
+	/*g_cl.UpdateIncomingSequences( );*/
 
 	// get this from CL_FireEvents string "Failed to execute event for classId" in engine.dll
 	for( CEventInfo* it{ g_csgo.m_cl->m_events }; it != nullptr; it = it->m_next ) {

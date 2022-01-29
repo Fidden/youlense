@@ -358,7 +358,7 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool lc) {
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::LETHAL2 });
 
 	// prefer, fake.
-	if (g_config.m["aimbot_prefer_baim"][3] && record->m_mode != Resolver::Modes::RESOLVE_NONE && record->m_mode != Resolver::Modes::RESOLVE_WALK && record->m_mode != Resolver::Modes::RESOLVE_BODY)
+	if (g_config.m["aimbot_prefer_baim"][3] && (record->m_mode != Resolver::Modes::RESOLVE_NONE && record->m_mode != Resolver::Modes::RESOLVE_WALK && record->m_mode != Resolver::Modes::RESOLVE_BODY))
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 
 	// prefer, in air.
@@ -374,13 +374,13 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool lc) {
 	}
 
 	// only, health.
-	if (g_config.m["aimbot_only_baim"][1] && m_player->m_iHealth() <= (int)g_config.i["aimbot_only_baim_health"]) {
+	if (g_config.m["aimbot_only_baim"][1] && (m_player->m_iHealth() <= (int)g_config.i["aimbot_only_baim_health"])) {
 		only = true;
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 	}
 
 	// only, fake.
-	if (g_config.m["aimbot_only_baim"][2] && record->m_mode != Resolver::Modes::RESOLVE_NONE && record->m_mode != Resolver::Modes::RESOLVE_WALK && record->m_mode != Resolver::Modes::RESOLVE_BODY) {
+	if (g_config.m["aimbot_only_baim"][2] && (record->m_mode != Resolver::Modes::RESOLVE_WALK && record->m_mode != Resolver::Modes::RESOLVE_BODY)) {
 		only = true;
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 	}
@@ -490,8 +490,11 @@ void Aimbot::think() {
 	if (g_cl.m_weapon_type == WEAPONTYPE_GRENADE || g_cl.m_weapon_type == WEAPONTYPE_C4)
 		return;
 
-	if (!g_cl.m_weapon_fire)
-		StripAttack();
+	#if !_DEBUG
+		if (!g_cl.m_weapon_fire)
+			StripAttack();
+	#endif 
+	
 
 	// we have no aimbot enabled.
 	if (!g_config.b["aimbot_enable"])
@@ -509,11 +512,14 @@ void Aimbot::think() {
 
 	// we have a normal weapon or a non cocking revolver
 	// choke if its the processing tick.
+	#if !_DEBUG
 	if (g_cl.m_weapon_fire && !g_cl.m_lag && !revolver) {
-		*g_cl.m_packet = false;
-		StripAttack();
-		return;
-	}
+			*g_cl.m_packet = false;
+			StripAttack();
+			return;
+		}
+	#endif // !_DEBUG
+
 
 	// no point in aimbotting if we cannot fire this tick.
 	if (!g_cl.m_weapon_fire)
@@ -638,7 +644,7 @@ void Aimbot::find() {
 	}
 
 	// verify our target and set needed data.
-	if (best.player && best.record && best.hitbox) {
+	if (best.player && best.record && best.hitbox != -1) {
 		// calculate aim angle.
 		math::VectorAngles(best.pos - g_cl.m_shoot_pos, m_angle);
 
@@ -677,7 +683,7 @@ void Aimbot::find() {
 			}
 		}
 
-		if (hit || !on) {
+		if (hit || !g_config.b["anti_untrasted"]) {
 			// right click attack.
 			if (!g_config.b["anti_untrasted"] && g_cl.m_weapon_id == REVOLVER)
 				g_cl.m_cmd->m_buttons |= IN_ATTACK2;

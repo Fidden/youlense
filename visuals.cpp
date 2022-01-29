@@ -939,6 +939,7 @@ void Visuals::DrawPlayer(Player* player) {
 
 	DrawSkeleton(player, alpha);
 	DrawHistorySkeleton(player, alpha);
+	DebugAimbotPoints(player);
 
 	if (g_config.b["esp_box"])
 		render::rect_outlined(box.x, box.y, box.w, box.h, color, { 10, 10, 10, low_alpha });
@@ -1408,7 +1409,7 @@ void Visuals::DrawHistorySkeleton(Player* player, int opacity) {
 	record = g_resolver.FindLastRecord(data);
 	if (!record)
 		return;
-
+	
 	for (int i{ }; i < hdr->m_num_bones; ++i) {
 		// get bone.
 		bone = hdr->GetBone(i);

@@ -341,6 +341,12 @@ public:
 		return util::get_method< void(__thiscall *)(void *, DataUpdateType_t) >(networkable(), 6)(networkable(), type);
 	}
 
+	__forceinline datamap_t* GetPredDescMap()
+	{
+		typedef datamap_t* (__thiscall* o_GetPredDescMap)(void*);
+		return util::get_method< o_GetPredDescMap >(this, 17)(this);
+	}
+
 	__forceinline void PostDataUpdate(DataUpdateType_t type) {
 		return util::get_method< void(__thiscall *)(void *, DataUpdateType_t) >(networkable(), 7)(networkable(), type);
 	}

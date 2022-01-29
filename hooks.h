@@ -33,7 +33,7 @@ public:
 	using GetScreenSize_t = void(__thiscall*)(void*, int&, int&);
 	using Push3DView_t = void(__thiscall*)(void*, CViewSetup&, int, void*, void*);
 	using SceneEnd_t = void(__thiscall*)(void*);
-	using DrawModelExecute_t = void(__thiscall*)(void*, uintptr_t, const DrawModelState_t&, const ModelRenderInfo_t&, matrix3x4_t*);
+	using DrawModelExecute_t = void(__thiscall*)(void*, const IMatRenderContext*, const DrawModelState_t&, const ModelRenderInfo_t&, matrix3x4_t*);
 	using ComputeShadowDepthTextures_t = void(__thiscall*)(void*, const CViewSetup&, bool);
 	using GetInt_t = int(__thiscall*)(void*);
 	using GetBool_t = bool(__thiscall*)(void*);
@@ -79,7 +79,7 @@ public:
 	void                     ProcessPacket(void* packet, bool header);
 	//void                     GetScreenSize( int& w, int& h );
 	void                     SceneEnd();
-	void                     DrawModelExecute(uintptr_t ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone);
+	void                     DrawModelExecute(IMatRenderContext* ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone);
 	void                     ComputeShadowDepthTextures(const CViewSetup& view, bool unk);
 	int                      DebugSpreadGetInt();
 	bool                     NetShowFragmentsGetBool();
